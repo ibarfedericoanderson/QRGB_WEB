@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QRGB++</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #1E1E1E;
+            --bg-secondary: #2D2D2D;
+            --text-primary: #FFFFFF;
+            --text-secondary: #E0E0E0;
+            --accent-blue: #3B82F6;
+            --accent-hover: #2563EB;
+            --input-bg: #333333;
+            --input-border: #4B5563;
+        }
+
+        .light-mode {
+            --bg-primary: #FFFFFF;
+            --bg-secondary: #F3F4F6;
+            --text-primary: #111827;
+            --text-secondary: #374151;
+            --input-bg: #F9FAFB;
+            --input-border: #D1D5DB;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s, color 0.3s;
+            font-size: 18px;
+        }
+
+        .qr-container {
+            background-color: var(--bg-secondary);
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            transition: background-color 0.3s;
+        }
+
+        .tab-active {
+            background-color: var(--accent-blue);
+            color: white;
+        }
+
+        .btn-primary {
+            background-color: var(--accent-blue);
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--accent-hover);
+            transform: translateY(-2px);
+        }
+
+        .input-field {
+            background-color: var(--input-bg);
+            border: 1px solid var(--input-border);
+            color: var(--text-primary);
+            transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+        }
+
+        .input-field:focus {
+            border-color: var(--accent-blue);
+            outline: none;
+        }
+
+        .color-indicator-red {
+            background-color: rgba(255, 0, 0, 0.1);
+            border-left: 4px solid #FF0000;
+        }
+
+        .color-indicator-green {
+            background-color: rgba(0, 255, 0, 0.1);
+            border-left: 4px solid #00FF00;
+        }
+
+        .color-indicator-blue {
+            background-color: rgba(0, 0, 255, 0.1);
+            border-left: 4px solid #0000FF;
+        }
+
+        #qr-combined-container {
+            position: relative;
+        }
+
+        #logo-preview {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            max-width: 20%;
+            max-height: 20%;
+        }
+
+        .page-section {
+            break-inside: avoid;
+        }
+
+        /* Logo title styling */
+        .qrgb-title {
+            font-size: 4rem;
+            font-weight: bold;
+            letter-spacing: -1px;
+            margin-bottom: 0.5rem;
+        }
+
+        .qrgb-title .q-letter {
+            color: var(--text-primary);
+            transition: color 0.3s;
+        }
+
+        .qrgb-title .r-letter {
+            color: #FF0000;
+        }
+
+        .qrgb-title .g-letter {
+            color: #00BB00;
+        }
+
+        .qrgb-title .b-letter {
+            color: #0000FF;
+        }
+
+        .qrgb-title .plus {
+            color: var(--text-primary);
+            transition: color 0.3s;
+        }
+
+        /* Toggle switch styling */
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 30px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #1E1E1E;
+            border: 1px solid #666;
+            transition: .4s;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 5px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #FFFFFF;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(30px);
+            background-color: #1E1E1E;
+        }
+
+        .slider .sun-icon,
+        .slider .moon-icon {
+            font-size: 14px;
+            color: white;
+        }
+
+        .slider .sun-icon {
+            color: #1E1E1E;
+        }
+
+        @media (max-width: 768px) {
+            .qrgb-title {
+                font-size: 3rem;
+            }
+            
+            body {
+                font-size: 16px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .qrgb-title {
+                font-size: 2.5rem;
+            }
+            
+            body {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen p-4 md:p-8">
+    <!-- Theme Toggle Switch -->
+    <div class="theme-toggle">
+        <label class="switch">
+            <input type="checkbox" id="theme-toggle">
+            <span class="slider">
+                <span class="moon-icon">🌙</span>
+                <span class="sun-icon">☀️</span>
+            </span>
+        </label>
+    </div>
+
+    <div class="max-w-6xl mx-auto">
+        <div class="flex flex-col items-center justify-center mb-8">
+            <h1 class="qrgb-title text-center">
+                <span class="q-letter">Q</span><span class="r-letter">R</span><span class="g-letter">G</span><span class="b-letter">B</span><span class="plus">++</span>
+            </h1>
+            <p class="text-gray-400 text-center max-w-2xl text-xl">
+                Genera códigos QR de alta densidad combinando tres capas RGB en una sola imagen
+            </p>
+        </div>
+
+        <!-- Main Tabs -->
+        <div class="mb-6 qr-container p-2">
+            <div class="flex mb-4">
+                <button id="tab-generator" class="flex-1 py-3 px-4 text-xl tab-active">Generador</button>
+                <button id="tab-decoder" class="flex-1 py-3 px-4 text-xl">Decodificador</button>
+            </div>
+        </div>
+
+        <!-- Generator Section -->
+        <div id="section-generator" class="page-section">
+            <div class="flex flex-col lg:flex-row space-y-8 lg:space-y-0 lg:space-x-8">
+                <!-- Input Panel -->
+                <div class="w-full lg:w-1/2 qr-container p-6">
+                    <h2 class="text-2xl font-semibold mb-4">Datos de entrada</h2>
+                    <!-- Red Layer Input -->
+                    <div class="mb-6 color-indicator-red p-4 rounded">
+                        <label for="red-input" class="block mb-2 font-medium text-lg">Contenido para capa ROJA:</label>
+                        <input type="text" id="red-input" placeholder="Texto o URL para capa roja"
+                            class="w-full p-4 rounded input-field text-lg">
+                    </div>
+
+                    <!-- Green Layer Input -->
+                    <div class="mb-6 color-indicator-green p-4 rounded">
+                        <label for="green-input" class="block mb-2 font-medium text-lg">Contenido para capa VERDE:</label>
+                        <input type="text" id="green-input" placeholder="Texto o URL para capa verde"
+                            class="w-full p-4 rounded input-field text-lg">
+                    </div>
+
+                    <!-- Blue Layer Input -->
+                    <div class="mb-6 color-indicator-blue p-4 rounded">
+                        <label for="blue-input" class="block mb-2 font-medium text-lg">Contenido para capa AZUL:</label>
+                        <input type="text" id="blue-input" placeholder="Texto o URL para capa azul"
+                            class="w-full p-4 rounded input-field text-lg">
+                    </div>
+
+                    <!-- Logo Input -->
+                    <div class="mb-6 p-4 rounded bg-gray-800">
+                        <label for="logo-input" class="block mb-2 font-medium text-lg">Logo central (opcional):</label>
+                        <input type="file" id="logo-input" accept="image/*"
+                            class="w-full p-4 rounded text-lg">
+                    </div>
+
+                    <!-- Advanced Options -->
+                    <div class="mb-6 p-4 rounded bg-gray-800">
+                        <h3 class="font-medium mb-2 text-lg">Opciones avanzadas:</h3>
+                        <div class="flex flex-col space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4">
+                            <div class="flex-1">
+                                <label for="qr-size" class="block mb-1 text-base">Tamaño:</label>
+                                <select id="qr-size" class="w-full p-3 rounded input-field text-lg">
+                                    <option value="8">Pequeño</option>
+                                    <option value="10" selected>Mediano</option>
+                                    <option value="12">Grande</option>
+                                </select>
+                            </div>
+                            <div class="flex-1">
+                                <label for="error-correction" class="block mb-1 text-base">Corrección de errores:</label>
+                                <select id="error-correction" class="w-full p-3 rounded input-field text-lg">
+                                    <option value="L">Baja (7%)</option>
+                                    <option value="M">Media (15%)</option>
+                                    <option value="Q">Cuartil (25%)</option>
+                                    <option value="H" selected>Alta (30%)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex space-x-4">
+                        <button id="generate-btn" class="flex-1 btn-primary py-4 px-6 rounded font-medium text-xl">
+                            Generar QRGB++
+                        </button>
+                        <button id="reset-btn" class="flex-1 bg-gray-700 hover:bg-gray-600 py-4 px-6 rounded font-medium transition text-xl">
+                            Reiniciar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Output Panel -->
+                <div class="w-full lg:w-1/2 qr-container p-6">
+                    <div class="flex mb-4 border-b border-gray-700">
+                        <button id="tab-combined" class="flex-1 py-3 px-4 tab-active text-lg">Combinado</button>
+                        <button id="tab-layers" class="flex-1 py-3 px-4 text-lg">Capas</button>
+                    </div>
+
+                    <!-- Combined Code View -->
+                    <div id="view-combined" class="mb-4">
+                        <div id="qr-combined-container" class="flex justify-center items-center bg-black p-4 rounded">
+                            <img id="logo-preview" src="" style="display: none;">
+                            <canvas id="qr-combined" class="max-w-full"></canvas>
+                        </div>
+                        <div class="mt-4 flex justify-center">
+                            <button id="download-btn" class="btn-primary py-3 px-6 rounded font-medium text-xl disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                                Descargar QRGB++
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Individual Layers View -->
+                    <div id="view-layers" class="hidden mb-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div>
+                                <h3 class="font-medium mb-2 text-center text-red-500">Capa Roja</h3>
+                                <div class="bg-black p-2 rounded flex justify-center">
+                                    <canvas id="qr-red" class="max-w-full"></canvas>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="font-medium mb-2 text-center text-green-500">Capa Verde</h3>
+                                <div class="bg-black p-2 rounded flex justify-center">
+                                    <canvas id="qr-green" class="max-w-full"></canvas>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="font-medium mb-2 text-center text-blue-500">Capa Azul</h3>
+                                <div class="bg-black p-2 rounded flex justify-center">
+                                    <canvas id="qr-blue" class="max-w-full"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Decoder Section -->
+        <div id="section-decoder" class="page-section hidden">
+            <div class="flex flex-col lg:flex-row space-y-8 lg:space-y-0 lg:space-x-8">
+                <!-- Input Panel -->
+                <div class="w-full lg:w-1/2 qr-container p-6">
+                    <h2 class="text-2xl font-semibold mb-4">Decodificador QRGB</h2>
+                    <p class="text-gray-400 mb-4">
+                        Sube una imagen QRGB para extraer la información de cada capa de color
+                    </p>
+
+                    <!-- File Input -->
+                    <div class="mb-6 p-4 rounded bg-gray-800">
+                        <label for="decoder-input" class="block mb-2 font-medium text-lg">Imagen QRGB:</label>
+                        <input type="file" id="decoder-input" accept="image/*"
+                            class="w-full p-4 rounded text-lg">
+                    </div>
+
+                    <div class="flex space-x-4">
+                        <button id="decode-btn" class="flex-1 btn-primary py-4 px-6 rounded font-medium text-xl">
+                            Decodificar QRGB
+                        </button>
+                        <button id="reset-decoder-btn" class="flex-1 bg-gray-700 hover:bg-gray-600 py-4 px-6 rounded font-medium transition text-xl">
+                            Reiniciar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Output Panel -->
+                <div class="w-full lg:w-1/2 qr-container p-6">
+                    <!-- Preview -->
+                    <div class="mb-6">
+                        <h3 class="font-medium mb-2 text-xl">Imagen Original</h3>
+                        <div class="bg-black p-4 rounded flex justify-center">
+                            <img id="decoder-preview" class="max-w-full max-h-64" style="display: none;">
+                        </div>
+                    </div>
+
+                    <!-- Results -->
+                    <div class="mb-6">
+                        <h3 class="font-medium mb-2 text-xl">Resultados Decodificados</h3>
+                        
+                        <!-- Red Layer Result -->
+                        <div class="mb-4 p-4 rounded color-indicator-red">
+                            <div class="flex justify-between">
+                                <h4 class="font-medium">Capa ROJA</h4>
+                                <button id="open-red-btn" class="px-2 py-1 text-xs rounded bg-gray-700 hover:bg-gray-600 hidden">Abrir</button>
+                            </div>
+                            <p id="result-red" class="mt-2 text-white">No hay datos disponibles</p>
+                        </div>
+                        
+                        <!-- Green Layer Result -->
+                        <div class="mb-4 p-4 rounded color-indicator-green">
+                            <div class="flex justify-between">
+                                <h4 class="font-medium">Capa VERDE</h4>
+                                <button id="open-green-btn" class="px-2 py-1 text-xs rounded bg-gray-700 hover:bg-gray-600 hidden">Abrir</button>
+                            </div>
+                            <p id="result-green" class="mt-2 text-white">No hay datos disponibles</p>
+                        </div>
+                        
+                        <!-- Blue Layer Result -->
+                        <div class="mb-4 p-4 rounded color-indicator-blue">
+                            <div class="flex justify-between">
+                                <h4 class="font-medium">Capa AZUL</h4>
+                                <button id="open-blue-btn" class="px-2 py-1 text-xs rounded bg-gray-700 hover:bg-gray-600 hidden">Abrir</button>
+                            </div>
+                            <p id="result-blue" class="mt-2 text-white">No hay datos disponibles</p>
+                        </div>
+                    </div>
+
+                    <!-- Separated Layers (Optional) -->
+                    <div class="mt-6 hidden" id="separated-layers">
+                        <h3 class="font-medium mb-2 text-xl">Capas Separadas</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div>
+                                <h4 class="font-medium mb-1 text-center text-red-500">Roja</h4>
+                                <div class="bg-white p-2 rounded flex justify-center">
+                                    <canvas id="decoded-red" class="max-w-full"></canvas>
+                                </div>
+                            </div>
+                            <div>
+                                <h4 class="font-medium mb-1 text-center text-green-500">Verde</h4>
+                                <div class="bg-white p-2 rounded flex justify-center">
+                                    <canvas id="decoded-green" class="max-w-full"></canvas>
+                                </div>
+                            </div>
+                            <div>
+                                <h4 class="font-medium mb-1 text-center text-blue-500">Azul</h4>
+                                <div class="bg-white p-2 rounded flex justify-center">
+                                    <canvas id="decoded-blue" class="max-w-full"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // DOM Elements
+        const themeToggle = document.getElementById('theme-toggle');
+        const tabGenerator = document.getElementById('tab-generator');
+        const tabDecoder = document.getElementById('tab-decoder');
+        const sectionGenerator = document.getElementById('section-generator');
+        const sectionDecoder = document.getElementById('section-decoder');
+        const tabCombined = document.getElementById('tab-combined');
+        const tabLayers = document.getElementById('tab-layers');
+        const viewCombined = document.getElementById('view-combined');
+        const viewLayers = document.getElementById('view-layers');
+        
+        // Generator elements
+        const redInput = document.getElementById('red-input');
+        const greenInput = document.getElementById('green-input');
+        const blueInput = document.getElementById('blue-input');
+        const logoInput = document.getElementById('logo-input');
+        const qrSize = document.getElementById('qr-size');
+        const errorCorrection = document.getElementById('error-correction');
+        const generateBtn = document.getElementById('generate-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const qrRed = document.getElementById('qr-red');
+        const qrGreen = document.getElementById('qr-green');
+        const qrBlue = document.getElementById('qr-blue');
+        const qrCombined = document.getElementById('qr-combined');
+        const logoPreview = document.getElementById('logo-preview');
+        const downloadBtn = document.getElementById('download-btn');
+        
+        // Decoder elements
+        const decoderInput = document.getElementById('decoder-input');
+        const decodeBtn = document.getElementById('decode-btn');
+        const resetDecoderBtn = document.getElementById('reset-decoder-btn');
+        const decoderPreview = document.getElementById('decoder-preview');
+        const resultRed = document.getElementById('result-red');
+        const resultGreen = document.getElementById('result-green');
+        const resultBlue = document.getElementById('result-blue');
+        const openRedBtn = document.getElementById('open-red-btn');
+        const openGreenBtn = document.getElementById('open-green-btn');
+        const openBlueBtn = document.getElementById('open-blue-btn');
+        const separatedLayers = document.getElementById('separated-layers');
+        const decodedRed = document.getElementById('decoded-red');
+        const decodedGreen = document.getElementById('decoded-green');
+        const decodedBlue = document.getElementById('decoded-blue');
+
+        // Theme Toggle
+        themeToggle.addEventListener('change', () => {
+            document.body.classList.toggle('light-mode');
+        });
+
+        // Tab Switching
+        tabGenerator.addEventListener('click', () => {
+            tabGenerator.classList.add('tab-active');
+            tabDecoder.classList.remove('tab-active');
+            sectionGenerator.classList.remove('hidden');
+            sectionDecoder.classList.add('hidden');
+        });
+
+        tabDecoder.addEventListener('click', () => {
+            tabDecoder.classList.add('tab-active');
+            tabGenerator.classList.remove('tab-active');
+            sectionDecoder.classList.remove('hidden');
+            sectionGenerator.classList.add('hidden');
+        });
+
+        // Output View Switching
+        tabCombined.addEventListener('click', () => {
+            tabCombined.classList.add('tab-active');
+            tabLayers.classList.remove('tab-active');
+            viewCombined.classList.remove('hidden');
+            viewLayers.classList.add('hidden');
+        });
+
+        tabLayers.addEventListener('click', () => {
+            tabLayers.classList.add('tab-active');
+            tabCombined.classList.remove('tab-active');
+            viewLayers.classList.remove('hidden');
+            viewCombined.classList.add('hidden');
+        });
+
+        // Logo Preview
+        logoInput.addEventListener('change', function(e) {
+            if (e.target.files && e.target.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    logoPreview.src = e.target.result;
+                    logoPreview.style.display = 'block';
+                }
+                reader.readAsDataURL(e.target.files[0]);
+            }
+        });
+
+        // Reset Form
+        resetBtn.addEventListener('click', function() {
+            redInput.value = '';
+            greenInput.value = '';
+            blueInput.value = '';
+            logoInput.value = '';
+            logoPreview.style.display = 'none';
+            qrSize.value = '10';
+            errorCorrection.value = 'H';
+            
+            const ctxRed = qrRed.getContext('2d');
+            const ctxGreen = qrGreen.getContext('2d');
+            const ctxBlue = qrBlue.getContext('2d');
+            const ctxCombined = qrCombined.getContext('2d');
+            
+            ctxRed.clearRect(0, 0, qrRed.width, qrRed.height);
+            ctxGreen.clearRect(0, 0, qrGreen.width, qrGreen.height);
+            ctxBlue.clearRect(0, 0, qrBlue.width, qrBlue.height);
+            ctxCombined.clearRect(0, 0, qrCombined.width, qrCombined.height);
+            
+            downloadBtn.disabled = true;
+        });
+
+        // Reset Decoder
+        resetDecoderBtn.addEventListener('click', function() {
+            decoderInput.value = '';
+            decoderPreview.style.display = 'none';
+            resultRed.textContent = 'No hay datos disponibles';
+            resultGreen.textContent = 'No hay datos disponibles';
+            resultBlue.textContent = 'No hay datos disponibles';
+            openRedBtn.classList.add('hidden');
+            openGreenBtn.classList.add('hidden');
+            openBlueBtn.classList.add('hidden');
+            separatedLayers.classList.add('hidden');
+        });
+
+        // Generate QR Code
+        generateBtn.addEventListener('click', async function() {
+            if (!redInput.value && !greenInput.value && !blueInput.value) {
+                alert('Por favor, introduce al menos un texto en alguna de las capas');
+                return;
+            }
+            
+            try {
+                // Obtener el logo si está disponible
+                let logoImgData = null;
+                if (logoPreview && logoPreview.style.display !== 'none') {
+                    logoImgData = logoPreview.src;
+                }
+                
+                // Configuración de QR
+                const qrVersion = 10;
+                const boxSize = parseInt(qrSize.value);
+                const correctionLevel = errorCorrection.value;
+                
+                // Generar códigos QR individuales
+                const redQR = await createQRCanvas(redInput.value || ' ', "red", logoImgData, qrVersion, boxSize, correctionLevel);
+                const greenQR = await createQRCanvas(greenInput.value || ' ', "green", logoImgData, qrVersion, boxSize, correctionLevel);
+                const blueQR = await createQRCanvas(blueInput.value || ' ', "blue", logoImgData, qrVersion, boxSize, correctionLevel);
+                
+                // Mostrar QRs individuales
+                const ctxRed = qrRed.getContext('2d');
+                const ctxGreen = qrGreen.getContext('2d');
+                const ctxBlue = qrBlue.getContext('2d');
+                
+                // Asegurarse de que los canvas tengan el tamaño correcto
+                qrRed.width = redQR.width;
+                qrRed.height = redQR.height;
+                qrGreen.width = greenQR.width;
+                qrGreen.height = greenQR.height;
+                qrBlue.width = blueQR.width;
+                qrBlue.height = blueQR.height;
+                
+                // Dibujar los QRs individuales
+                ctxRed.drawImage(redQR, 0, 0);
+                ctxGreen.drawImage(greenQR, 0, 0);
+                ctxBlue.drawImage(blueQR, 0, 0);
+                
+                // Combinar QRs
+                const combinedQR = combineQRCanvases(redQR, greenQR, blueQR, logoImgData);
+                
+                // Mostrar QR combinado
+                qrCombined.width = combinedQR.width;
+                qrCombined.height = combinedQR.height;
+                qrCombined.getContext('2d').drawImage(combinedQR, 0, 0);
+                
+                // Habilitar botón de descarga
+                downloadBtn.disabled = false;
+            } catch (error) {
+                console.error('Error generando códigos QR:', error);
+                alert('Error al generar los códigos QR: ' + error.message);
+            }
+        });
+        
+        // Crear QR code con color y logo (implementación basada en app.py)
+        async function createQRCanvas(data, color, logoPath = null, qrVersion = 10, boxSize = 10, errorCorrection = 'H') {
+            // Crear canvas y contexto
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Configurar opciones de QR
+            const ecLevelMap = {
+                'L': 'L',
+                'M': 'M',
+                'Q': 'Q',
+                'H': 'H'
+            };
+            
+            const colorMap = {
+                'red': '#FF0000',
+                'green': '#00FF00',
+                'blue': '#0000FF'
+            };
+            
+            // Asegurar que todas las capas tengan el mismo tamaño y estructura
+            const options = {
+                errorCorrectionLevel: ecLevelMap[errorCorrection] || 'H',
+                margin: 4,
+                scale: boxSize,
+                color: {
+                    dark: colorMap[color],
+                    light: '#FFFFFF'
+                },
+                version: qrVersion
+            };
+            
+            // Crear QR
+            return new Promise((resolve, reject) => {
+                QRCode.toCanvas(canvas, data, options, async function(error) {
+                    if (error) {
+                        console.error('Error creando QR:', error);
+                        reject(error);
+                        return;
+                    }
+                    
+                    // Si hay logo, añadirlo
+                    if (logoPath) {
+                        try {
+                            const logo = new Image();
+                            logo.src = logoPath;
+                            
+                            await new Promise((resolve) => {
+                                logo.onload = resolve;
+                            });
+                            
+                            // Calcular tamaño y posición del logo
+                            const basewidth = canvas.width / 4;
+                            const wpercent = basewidth / logo.width;
+                            const hsize = logo.height * wpercent;
+                            
+                            const posX = (canvas.width - basewidth) / 2;
+                            const posY = (canvas.height - hsize) / 2;
+                            
+                            // Dibujar logo
+                            ctx.drawImage(logo, posX, posY, basewidth, hsize);
+                        } catch (logoError) {
+                            console.warn('Error añadiendo logo:', logoError);
+                            // Continuar sin logo
+                        }
+                    }
+                    
+                    // Asegurar colores puros
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    for (let i = 0; i < imageData.data.length; i += 4) {
+                        const r = imageData.data[i];
+                        const g = imageData.data[i+1];
+                        const b = imageData.data[i+2];
+                        
+                        // Si es blanco, mantenerlo blanco
+                        if (r > 240 && g > 240 && b > 240) {
+                            imageData.data[i] = 255;
+                            imageData.data[i+1] = 255;
+                            imageData.data[i+2] = 255;
+                        } 
+                        // Si es un píxel QR (oscuro)
+                        else if (r < 127 || g < 127 || b < 127) {
+                            if (color === 'red') {
+                                imageData.data[i] = 255;
+                                imageData.data[i+1] = 0;
+                                imageData.data[i+2] = 0;
+                            } else if (color === 'green') {
+                                imageData.data[i] = 0;
+                                imageData.data[i+1] = 255;
+                                imageData.data[i+2] = 0;
+                            } else if (color === 'blue') {
+                                imageData.data[i] = 0;
+                                imageData.data[i+1] = 0;
+                                imageData.data[i+2] = 255;
+                            }
+                        }
+                        // Asegurar que alfa siempre sea 255
+                        imageData.data[i+3] = 255;
+                    }
+                    
+                    ctx.putImageData(imageData, 0, 0);
+                    resolve(canvas);
+                });
+            });
+        }
+        
+        // Combinar QR codes - implementación directa del algoritmo de app (2).py
+        function combineQRCanvases(redCanvas, greenCanvas, blueCanvas, logoPath = null) {
+            // Verificar que todos los QR tengan el mismo tamaño
+            const width = redCanvas.width;
+            const height = redCanvas.height;
+            
+            if (greenCanvas.width !== width || greenCanvas.height !== height || 
+                blueCanvas.width !== width || blueCanvas.height !== height) {
+                throw new Error("Todos los códigos QR deben tener el mismo tamaño");
+            }
+            
+            // Crear canvas para la imagen final
+            const finalCanvas = document.createElement('canvas');
+            finalCanvas.width = width;
+            finalCanvas.height = height;
+            const ctx = finalCanvas.getContext('2d');
+            
+            // Obtener datos de imagen de cada QR
+            const redCtx = redCanvas.getContext('2d');
+            const greenCtx = greenCanvas.getContext('2d');
+            const blueCtx = blueCanvas.getContext('2d');
+            
+            const redData = redCtx.getImageData(0, 0, width, height);
+            const greenData = greenCtx.getImageData(0, 0, width, height);
+            const blueData = blueCtx.getImageData(0, 0, width, height);
+            
+            // Crear nueva imagen combinada
+            const combinedData = ctx.createImageData(width, height);
+            
+            // Implementación exacta de combine_qr_images de app (2).py
+            for (let i = 0; i < combinedData.data.length; i += 4) {
+                const r1 = redData.data[i], g1 = redData.data[i+1], b1 = redData.data[i+2];
+                const isRedPixel = (r1 > 200 && g1 < 100 && b1 < 100); // Rojo
+                
+                const r2 = greenData.data[i], g2 = greenData.data[i+1], b2 = greenData.data[i+2];
+                const isGreenPixel = (r2 < 100 && g2 > 200 && b2 < 100); // Verde
+                
+                const r3 = blueData.data[i], g3 = blueData.data[i+1], b3 = blueData.data[i+2];
+                const isBluePixel = (r3 < 100 && g3 < 100 && b3 > 200); // Azul
+                
+                if (isRedPixel && isGreenPixel && isBluePixel) {
+                    // Los tres tienen datos - blanco
+                    combinedData.data[i] = 255;
+                    combinedData.data[i+1] = 255;
+                    combinedData.data[i+2] = 255;
+                } else if (isRedPixel && isGreenPixel) {
+                    // Rojo + Verde = Amarillo
+                    combinedData.data[i] = 255;
+                    combinedData.data[i+1] = 255;
+                    combinedData.data[i+2] = 0;
+                } else if (isRedPixel && isBluePixel) {
+                    // Rojo + Azul = Magenta
+                    combinedData.data[i] = 255;
+                    combinedData.data[i+1] = 0;
+                    combinedData.data[i+2] = 255;
+                } else if (isGreenPixel && isBluePixel) {
+                    // Verde + Azul = Cian
+                    combinedData.data[i] = 0;
+                    combinedData.data[i+1] = 255;
+                    combinedData.data[i+2] = 255;
+                } else if (isRedPixel) {
+                    // Solo Rojo
+                    combinedData.data[i] = 255;
+                    combinedData.data[i+1] = 0;
+                    combinedData.data[i+2] = 0;
+                } else if (isGreenPixel) {
+                    // Solo Verde
+                    combinedData.data[i] = 0;
+                    combinedData.data[i+1] = 255;
+                    combinedData.data[i+2] = 0;
+                } else if (isBluePixel) {
+                    // Solo Azul
+                    combinedData.data[i] = 0;
+                    combinedData.data[i+1] = 0;
+                    combinedData.data[i+2] = 255;
+                } else {
+                    // Sin datos - negro
+                    combinedData.data[i] = 0;
+                    combinedData.data[i+1] = 0;
+                    combinedData.data[i+2] = 0;
+                }
+                
+                combinedData.data[i+3] = 255; // Alpha siempre opaco
+            }
+            
+            ctx.putImageData(combinedData, 0, 0);
+            
+            // Añadir logo si existe
+            if (logoPath) {
+                try {
+                    const logo = new Image();
+                    logo.src = logoPath;
+                    
+                    const basewidth = width / 4;
+                    const wpercent = basewidth / logo.width;
+                    const hsize = logo.height * wpercent;
+                    
+                    const posX = (width - basewidth) / 2;
+                    const posY = (height - hsize) / 2;
+                    
+                    ctx.drawImage(logo, posX, posY, basewidth, hsize);
+                } catch (logoError) {
+                    console.warn('Error añadiendo logo en QR combinado:', logoError);
+                }
+            }
+            
+            return finalCanvas;
+        }
+
+        // Download QR Code
+        downloadBtn.addEventListener('click', function() {
+            const link = document.createElement('a');
+            link.download = 'qrgb_code.png';
+            link.href = qrCombined.toDataURL('image/png');
+            link.click();
+        });
+
+        // Decoder image preview
+        decoderInput.addEventListener('change', function(e) {
+            if (e.target.files && e.target.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    decoderPreview.src = e.target.result;
+                    decoderPreview.style.display = 'block';
+                }
+                reader.readAsDataURL(e.target.files[0]);
+            }
+        });
+
+        // Decode QR Code
+        decodeBtn.addEventListener('click', async function() {
+            if (decoderPreview.style.display === 'none') {
+                alert('Por favor, selecciona una imagen para decodificar');
+                return;
+            }
+            
+            try {
+                // Create an image to draw onto canvas
+                const img = new Image();
+                img.src = decoderPreview.src;
+                
+                await new Promise((resolve) => {
+                    img.onload = resolve;
+                });
+                
+                // Create a canvas and draw the image
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                
+                // Get image data
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                
+                // Separate layers
+                const { redCanvas, greenCanvas, blueCanvas } = separateRGBLayers(imageData);
+                
+                // Display separated layers in their respective colors
+                decodedRed.width = redCanvas.width;
+                decodedRed.height = redCanvas.height;
+                const redCtx = decodedRed.getContext('2d');
+                redCtx.drawImage(redCanvas, 0, 0);
+                
+                // Colorize the red layer to actually be red
+                const redImgData = redCtx.getImageData(0, 0, decodedRed.width, decodedRed.height);
+                for (let i = 0; i < redImgData.data.length; i += 4) {
+                    if (redImgData.data[i] === 0 && redImgData.data[i+1] === 0 && redImgData.data[i+2] === 0) {
+                        // If black pixel (QR data), change to red
+                        redImgData.data[i] = 255; // R
+                        redImgData.data[i+1] = 0; // G
+                        redImgData.data[i+2] = 0; // B
+                    }
+                }
+                redCtx.putImageData(redImgData, 0, 0);
+                
+                // Green layer
+                decodedGreen.width = greenCanvas.width;
+                decodedGreen.height = greenCanvas.height;
+                const greenCtx = decodedGreen.getContext('2d');
+                greenCtx.drawImage(greenCanvas, 0, 0);
+                
+                // Colorize the green layer
+                const greenImgData = greenCtx.getImageData(0, 0, decodedGreen.width, decodedGreen.height);
+                for (let i = 0; i < greenImgData.data.length; i += 4) {
+                    if (greenImgData.data[i] === 0 && greenImgData.data[i+1] === 0 && greenImgData.data[i+2] === 0) {
+                        // If black pixel (QR data), change to green
+                        greenImgData.data[i] = 0;   // R
+                        greenImgData.data[i+1] = 255; // G
+                        greenImgData.data[i+2] = 0;   // B
+                    }
+                }
+                greenCtx.putImageData(greenImgData, 0, 0);
+                
+                // Blue layer
+                decodedBlue.width = blueCanvas.width;
+                decodedBlue.height = blueCanvas.height;
+                const blueCtx = decodedBlue.getContext('2d');
+                blueCtx.drawImage(blueCanvas, 0, 0);
+                
+                // Colorize the blue layer
+                const blueImgData = blueCtx.getImageData(0, 0, decodedBlue.width, decodedBlue.height);
+                for (let i = 0; i < blueImgData.data.length; i += 4) {
+                    if (blueImgData.data[i] === 0 && blueImgData.data[i+1] === 0 && blueImgData.data[i+2] === 0) {
+                        // If black pixel (QR data), change to blue
+                        blueImgData.data[i] = 0;   // R
+                        blueImgData.data[i+1] = 0;   // G
+                        blueImgData.data[i+2] = 255; // B
+                    }
+                }
+                blueCtx.putImageData(blueImgData, 0, 0);
+                
+                // Show separated layers
+                separatedLayers.classList.remove('hidden');
+                
+                // Decode each layer
+                const redResult = decodeQR(redCanvas);
+                const greenResult = decodeQR(greenCanvas);
+                const blueResult = decodeQR(blueCanvas);
+                
+                // Update results
+                if (redResult) {
+                    resultRed.textContent = redResult.data;
+                    if (isValidUrl(redResult.data)) {
+                        openRedBtn.classList.remove('hidden');
+                        openRedBtn.addEventListener('click', () => {
+                            window.open(redResult.data, '_blank');
+                        });
+                    }
+                } else {
+                    resultRed.textContent = 'No se pudo decodificar';
+                }
+                
+                if (greenResult) {
+                    resultGreen.textContent = greenResult.data;
+                    if (isValidUrl(greenResult.data)) {
+                        openGreenBtn.classList.remove('hidden');
+                        openGreenBtn.addEventListener('click', () => {
+                            window.open(greenResult.data, '_blank');
+                        });
+                    }
+                } else {
+                    resultGreen.textContent = 'No se pudo decodificar';
+                }
+                
+                if (blueResult) {
+                    resultBlue.textContent = blueResult.data;
+                    if (isValidUrl(blueResult.data)) {
+                        openBlueBtn.classList.remove('hidden');
+                        openBlueBtn.addEventListener('click', () => {
+                            window.open(blueResult.data, '_blank');
+                        });
+                    }
+                } else {
+                    resultBlue.textContent = 'No se pudo decodificar';
+                }
+                
+            } catch (error) {
+                console.error('Error decoding QR code:', error);
+                alert('Error al decodificar el código QR');
+            }
+        });
+
+        // Separate RGB layers from a combined image
+        function separateRGBLayers(imageData) {
+            const width = imageData.width;
+            const height = imageData.height;
+            
+            // Create canvases for each layer
+            const redCanvas = document.createElement('canvas');
+            const greenCanvas = document.createElement('canvas');
+            const blueCanvas = document.createElement('canvas');
+            
+            redCanvas.width = greenCanvas.width = blueCanvas.width = width;
+            redCanvas.height = greenCanvas.height = blueCanvas.height = height;
+            
+            const redCtx = redCanvas.getContext('2d');
+            const greenCtx = greenCanvas.getContext('2d');
+            const blueCtx = blueCanvas.getContext('2d');
+            
+            // Fill with white background (QR code background)
+            redCtx.fillStyle = greenCtx.fillStyle = blueCtx.fillStyle = '#FFFFFF';
+            redCtx.fillRect(0, 0, width, height);
+            
+            // Create image data for each layer
+            const redData = redCtx.createImageData(width, height);
+            const greenData = greenCtx.createImageData(width, height);
+            const blueData = blueCtx.createImageData(width, height);
+            
+            // Set all pixels to white initially
+            for (let i = 0; i < redData.data.length; i += 4) {
+                redData.data[i] = redData.data[i+1] = redData.data[i+2] = 255;
+                greenData.data[i] = greenData.data[i+1] = greenData.data[i+2] = 255;
+                blueData.data[i] = blueData.data[i+1] = blueData.data[i+2] = 255;
+                
+                redData.data[i+3] = greenData.data[i+3] = blueData.data[i+3] = 255;
+            }
+            
+            // Phase 1: Analyze the color distribution of the image
+            let totalRed = 0, totalGreen = 0, totalBlue = 0;
+            let pixelCount = 0;
+            
+            for (let i = 0; i < imageData.data.length; i += 4) {
+                if (imageData.data[i+3] > 0) { // Consider only non-transparent pixels
+                    totalRed += imageData.data[i];
+                    totalGreen += imageData.data[i+1];
+                    totalBlue += imageData.data[i+2];
+                    pixelCount++;
+                }
+            }
+            
+            // Calculate average color values
+            const avgRed = pixelCount > 0 ? totalRed / pixelCount : 0;
+            const avgGreen = pixelCount > 0 ? totalGreen / pixelCount : 0;
+            const avgBlue = pixelCount > 0 ? totalBlue / pixelCount : 0;
+            
+            // Calculate dynamic thresholds based on image content
+            // If the image has a lot of a certain color, raise the threshold
+            const redThreshold = Math.max(160, avgRed * 0.8);
+            const greenThreshold = Math.max(160, avgGreen * 0.8);
+            const blueThreshold = Math.max(160, avgBlue * 0.8);
+            
+            // Phase 2: Extract color channels with optimized thresholds
+            for (let i = 0; i < imageData.data.length; i += 4) {
+                const r = imageData.data[i];
+                const g = imageData.data[i+1];
+                const b = imageData.data[i+2];
+                
+                // For red layer: RGB color analysis with special cases
+                if (r > redThreshold || // High red component
+                    (r > 200 && g > 200 && b < 50) || // Yellow (R+G)
+                    (r > 200 && b > 200 && g < 50) || // Magenta (R+B)
+                    (r > 240 && g > 240 && b > 240)) { // White 
+                    redData.data[i] = redData.data[i+1] = redData.data[i+2] = 0; // Black pixel in red QR
+                }
+                
+                // For green layer: RGB color analysis with special cases
+                if (g > greenThreshold || // High green component
+                    (r > 200 && g > 200 && b < 50) || // Yellow (R+G)
+                    (g > 200 && b > 200 && r < 50) || // Cyan (G+B)
+                    (r > 240 && g > 240 && b > 240)) { // White
+                    greenData.data[i] = greenData.data[i+1] = greenData.data[i+2] = 0; // Black pixel in green QR
+                }
+                
+                // For blue layer: RGB color analysis with special cases
+                if (b > blueThreshold || // High blue component
+                    (r > 200 && b > 200 && g < 50) || // Magenta (R+B)
+                    (g > 200 && b > 200 && r < 50) || // Cyan (G+B)
+                    (r > 240 && g > 240 && b > 240)) { // White
+                    blueData.data[i] = blueData.data[i+1] = blueData.data[i+2] = 0; // Black pixel in blue QR
+                }
+            }
+            
+            // Phase 3: Clean up each layer to improve readability
+            const cleanupQRLayer = (layerData) => {
+                const cleaned = new ImageData(new Uint8ClampedArray(layerData.data), width, height);
+                
+                // Apply noise reduction with a 3x3 kernel
+                const temp = new Uint8ClampedArray(layerData.data.length);
+                for (let i = 0; i < layerData.data.length; i++) {
+                    temp[i] = layerData.data[i];
+                }
+                
+                for (let y = 1; y < height - 1; y++) {
+                    for (let x = 1; x < width - 1; x++) {
+                        const idx = (y * width + x) * 4;
+                        
+                        // Count black neighbors (value = 0)
+                        let blackCount = 0;
+                        for (let dy = -1; dy <= 1; dy++) {
+                            for (let dx = -1; dx <= 1; dx++) {
+                                const neighborIdx = ((y + dy) * width + (x + dx)) * 4;
+                                if (temp[neighborIdx] === 0) {
+                                    blackCount++;
+                                }
+                            }
+                        }
+                        
+                        // Apply simple majority rule for noise reduction
+                        // If pixel is different from majority of its neighbors, convert it
+                        if (blackCount >= 5) {
+                            // Majority of neighbors are black, make this pixel black too
+                            cleaned.data[idx] = cleaned.data[idx + 1] = cleaned.data[idx + 2] = 0;
+                        } else if (blackCount <= 3) {
+                            // Majority of neighbors are white, make this pixel white too
+                            cleaned.data[idx] = cleaned.data[idx + 1] = cleaned.data[idx + 2] = 255;
+                        }
+                        // If 4 neighbors are black and 4 are white, leave it as is
+                    }
+                }
+                
+                return cleaned;
+            };
+            
+            // Clean up each layer
+            const cleanedRedData = cleanupQRLayer(redData);
+            const cleanedGreenData = cleanupQRLayer(greenData);
+            const cleanedBlueData = cleanupQRLayer(blueData);
+            
+            // Put data on canvases
+            redCtx.putImageData(cleanedRedData, 0, 0);
+            greenCtx.putImageData(cleanedGreenData, 0, 0);
+            blueCtx.putImageData(cleanedBlueData, 0, 0);
+            
+            return {
+                redCanvas,
+                greenCanvas,
+                blueCanvas
+            };
+        }
+
+        // Decode QR code from canvas
+        function decodeQR(canvas) {
+            try {
+                const ctx = canvas.getContext('2d');
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                return jsQR(imageData.data, canvas.width, canvas.height);
+            } catch (error) {
+                console.error('QR decode error:', error);
+                return null;
+            }
+        }
+
+        // Enhanced decoder that tries multiple processing techniques
+        function enhancedDecodeQR(canvas) {
+            try {
+                // Try standard decoding first
+                const result = decodeQR(canvas);
+                if (result) return result;
+                
+                // If standard decode fails, try with contrast enhancement
+                const enhancedCanvas = enhanceQRCodeContrast(canvas);
+                const enhancedResult = decodeQR(enhancedCanvas);
+                if (enhancedResult) return enhancedResult;
+                
+                // If enhanced decode fails, try with binary threshold
+                const binaryCanvas = convertToBinary(canvas);
+                const binaryResult = decodeQR(binaryCanvas);
+                if (binaryResult) return binaryResult;
+                
+                // Try different thresholds if still fails
+                const thresholds = [0.3, 0.4, 0.5, 0.6, 0.7];
+                for (const threshold of thresholds) {
+                    const customThresholdCanvas = applyCustomThreshold(canvas, threshold);
+                    const customResult = decodeQR(customThresholdCanvas);
+                    if (customResult) return customResult;
+                }
+                
+                // Last resort: apply sharpening and then try again
+                const sharpenedCanvas = sharpenImage(canvas);
+                const sharpenedResult = decodeQR(sharpenedCanvas);
+                if (sharpenedResult) return sharpenedResult;
+                
+                // If all else fails, try inverting colors
+                const invertedCanvas = invertColors(canvas);
+                return decodeQR(invertedCanvas);
+            } catch (error) {
+                console.error('Enhanced QR decode error:', error);
+                return null;
+            }
+        }
+        
+        // Apply custom threshold
+        function applyCustomThreshold(canvas, thresholdValue) {
+            const ctx = canvas.getContext('2d');
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            
+            // Apply fixed threshold
+            const threshold = 255 * thresholdValue;
+            for (let i = 0; i < data.length; i += 4) {
+                const avg = (data[i] + data[i+1] + data[i+2]) / 3;
+                const newVal = avg < threshold ? 0 : 255;
+                data[i] = data[i+1] = data[i+2] = newVal;
+            }
+            
+            const resultCanvas = document.createElement('canvas');
+            resultCanvas.width = canvas.width;
+            resultCanvas.height = canvas.height;
+            const resultCtx = resultCanvas.getContext('2d');
+            resultCtx.putImageData(imageData, 0, 0);
+            
+            return resultCanvas;
+        }
+        
+        // Sharpen image to enhance edges
+        function sharpenImage(canvas) {
+            const ctx = canvas.getContext('2d');
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            const width = canvas.width;
+            const height = canvas.height;
+            
+            // Create a copy of the image data
+            const resultCanvas = document.createElement('canvas');
+            resultCanvas.width = width;
+            resultCanvas.height = height;
+            const resultCtx = resultCanvas.getContext('2d');
+            const resultData = resultCtx.createImageData(width, height);
+            
+            // Sharpening kernel
+            const kernel = [
+                 0, -1,  0,
+                -1,  5, -1,
+                 0, -1,  0
+            ];
+            
+            // Apply convolution
+            for (let y = 1; y < height - 1; y++) {
+                for (let x = 1; x < width - 1; x++) {
+                    const centerPixel = (y * width + x) * 4;
+                    
+                    // Apply kernel to each color channel
+                    for (let c = 0; c < 3; c++) {
+                        let sum = 0;
+                        for (let ky = -1; ky <= 1; ky++) {
+                            for (let kx = -1; kx <= 1; kx++) {
+                                const kernelIndex = (ky + 1) * 3 + (kx + 1);
+                                const pixelIndex = ((y + ky) * width + (x + kx)) * 4 + c;
+                                sum += data[pixelIndex] * kernel[kernelIndex];
+                            }
+                        }
+                        
+                        // Clamp values to 0-255 range
+                        resultData.data[centerPixel + c] = Math.max(0, Math.min(255, sum));
+                    }
+                    
+                    // Set alpha to 255 (fully opaque)
+                    resultData.data[centerPixel + 3] = 255;
+                }
+            }
+            
+            resultCtx.putImageData(resultData, 0, 0);
+            
+            // After sharpening, apply a binary threshold for better QR detection
+            const binaryCanvas = convertToBinary(resultCanvas);
+            return binaryCanvas;
+        }
+        
+        // Invert colors
+        function invertColors(canvas) {
+            const ctx = canvas.getContext('2d');
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            
+            // Invert each color channel
+            for (let i = 0; i < data.length; i += 4) {
+                data[i] = 255 - data[i];         // R
+                data[i + 1] = 255 - data[i + 1]; // G
+                data[i + 2] = 255 - data[i + 2]; // B
+            }
+            
+            const resultCanvas = document.createElement('canvas');
+            resultCanvas.width = canvas.width;
+            resultCanvas.height = canvas.height;
+            const resultCtx = resultCanvas.getContext('2d');
+            resultCtx.putImageData(imageData, 0, 0);
+            
+            return resultCanvas;
+        }
+
+        // Enhance QR code contrast to improve reading
+        function enhanceQRCodeContrast(canvas) {
+            const ctx = canvas.getContext('2d');
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            
+            // Enhance contrast
+            for (let i = 0; i < data.length; i += 4) {
+                const avg = (data[i] + data[i+1] + data[i+2]) / 3;
+                const newVal = avg < 128 ? 0 : 255;
+                data[i] = data[i+1] = data[i+2] = newVal;
+            }
+            
+            const resultCanvas = document.createElement('canvas');
+            resultCanvas.width = canvas.width;
+            resultCanvas.height = canvas.height;
+            const resultCtx = resultCanvas.getContext('2d');
+            resultCtx.putImageData(imageData, 0, 0);
+            
+            return resultCanvas;
+        }
+
+        // Convert image to binary (black and white only)
+        function convertToBinary(canvas) {
+            const ctx = canvas.getContext('2d');
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            
+            // Dynamic threshold calculation
+            let sum = 0;
+            for (let i = 0; i < data.length; i += 4) {
+                sum += (data[i] + data[i+1] + data[i+2]) / 3;
+            }
+            const threshold = sum / (data.length / 4);
+            
+            // Apply binary threshold
+            for (let i = 0; i < data.length; i += 4) {
+                const avg = (data[i] + data[i+1] + data[i+2]) / 3;
+                const newVal = avg < threshold ? 0 : 255;
+                data[i] = data[i+1] = data[i+2] = newVal;
+            }
+            
+            const resultCanvas = document.createElement('canvas');
+            resultCanvas.width = canvas.width;
+            resultCanvas.height = canvas.height;
+            const resultCtx = resultCanvas.getContext('2d');
+            resultCtx.putImageData(imageData, 0, 0);
+            
+            return resultCanvas;
+        }
+
+        // Check if string is a valid URL
+        function isValidUrl(string) {
+            try {
+                new URL(string);
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+    </script>
+
+    <!-- Footer con copyright -->
+    <footer class="mt-16 text-center text-gray-400 p-6 bg-gray-800">
+        <div class="max-w-3xl mx-auto">
+            <div class="flex flex-col items-center">
+                <p class="mb-3 text-lg">
+                    <span class="inline-block mr-1">&#169;</span> 2025 
+                    <strong>Ibar Federico Anderson, Ph.D., Mg., Diseñador Industrial</strong>
+                </p>
+                <div class="flex flex-wrap justify-center gap-4 text-sm">
+                    <a href="https://scholar.google.com/citations?user=mXD4RFUAAAAJ&hl=en" target="_blank" class="text-blue-400 hover:underline flex items-center">
+                        <span>Google Scholar</span>
+                    </a>
+                    <a href="https://orcid.org/0000-0002-9732-3660" target="_blank" class="text-blue-400 hover:underline flex items-center">
+                        <span>ORCID</span>
+                    </a>
+                    <a href="https://www.researchgate.net/profile/Ibar-Anderson" target="_blank" class="text-blue-400 hover:underline flex items-center">
+                        <span>Research Gate</span>
+                    </a>
+                </div>
+                <p class="mt-3 text-xs">
+                    QRGB++ - Codificador y Decodificador de Códigos QR Multicapa
+                </p>
+            </div>
+        </div>
+    </footer>
+</body>
+
+</html>
